@@ -1,2 +1,3 @@
-# AWS-ML_Satellite_Deployment
-This repo contains the AWS deployment of a Machine Learning model for detecting solar panels from satellite imagery.
+# 'Satellite ML Solar Plants Detection' Deployment project on AWS
+
+In this section, we present the AWS SageMaker files and folders hierarchy for the project deployment on AWS
