@@ -1,5 +1,9 @@
 Sat_Solar_Detect/
+Model_env/
+models/weights
+acquisition/
 
 .ipynb_checkpoints/
 test/*.tif
+models/.ipynb_checkpoints
 
