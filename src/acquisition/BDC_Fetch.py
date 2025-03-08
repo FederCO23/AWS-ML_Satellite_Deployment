@@ -1,3 +1,7 @@
+
+import json
+import boto3
+
 import math
 import numpy as np
 import numpy.ma as ma
@@ -8,6 +12,8 @@ import os
 from io import BytesIO
 
 import time
+
+import traceback
 
 import pystac_client
 import rasterio
@@ -23,6 +29,7 @@ from geopy.distance import geodesic
 
 # AWS S3 Client
 s3 = boto3.client('s3')
+batch_client = boto3.client('batch')
 
 # Define S3 bucket configuration
             
@@ -42,8 +49,14 @@ def lambda_handler(event, context):
     try:
         
         # Extract parameters from API Gateway request
-        transaction_ID = event.get('transaction_ID')
+        transaction_ID = ID_Gen()  #event.get('transaction_ID')
+        if not transaction_ID:
+            raise ValueError("Missing required parameter: 'transaction_ID'")
         center_point = event.get('center_point')  # (lat, lon)
+        if not center_point or len(center_point) != 2:
+            raise ValueError("Invalid or missing 'center_point'. Expected format: [latitude, longitude]")
+        center_point = tuple(center_point)  # Ensure it's a tuple
+
         ns_distance_km = event.get('ns_distance_km', 10)
         we_distance_km = event.get('we_distance_km', 10)
         datetime_range = event.get('datetime_range', '2024-07-01/2024-08-31')
@@ -166,17 +179,33 @@ def lambda_handler(event, context):
         total_duration = time.time() - start_time
         print(f"Lambda completed execution in {total_duration:.2f} seconds.")
 
+        # Considering the next workflow step: AWS Batch for Image Enhancement
+        response = batch_client.submit_job(
+            jobName=f"Imagej-enhancement-{transaction_ID}",
+            jobQueue="image-enhancement-job-queue",
+            jobDefinition="image-enhancement-job",
+            parameters={
+                "transaction_id": str(transaction_ID),
+                "scale_factor": "2"
+            }
+        )
+
         return {
             "statusCode": 200,
-            "body": json.dumps({"message": "Image saved to S3", "s3_key": s3_key})
+            "body": json.dumps({
+                "message": f"AWS Batch job submitted for transaction {transaction_ID}",
+                "jobID": response["jobId"]
+            })
         }
     
     except Exception as e:
+        print("Error occurred:", traceback.format_exc())  # Logs the full error
         return {"statusCode": 500, "body": json.dumps(str(e))}
 
+    
 
 
-def ID_Gen(file_path):
+def ID_Gen():
     
     """Reads, increments, and updates a counter in S3, returning it in the format: NNNNNN-YYYY-MM-DD"""
     
@@ -185,7 +214,9 @@ def ID_Gen(file_path):
     try:
         # Attempt to fetch the current counter value from S3
         obj = s3.get_object(Bucket=S3_BUCKET, Key=COUNTER_FILE)
-        counter = int(obj["Body"].read().decode("utf-8").strip())
+        content = obj["Body"].read().decode("utf-8").strip()
+        counter = int(content) if content.isdigit() else 0
+
     except (s3.exceptions.NoSuchKey, ValueError):
         # If file does not exist or is empty, initialize counter at 0
         counter = 0
@@ -194,10 +225,10 @@ def ID_Gen(file_path):
     counter += 1
 
     # Upload updated counter back to S3
-    s3.put_object(Bucket=S3_BUCKET, Key=COUNTER_FILE, Body=str(counter))
+    s3.put_object(Bucket=S3_BUCKET, Key=COUNTER_FILE, Body=str(counter), ContentType="text/plain")
 
     # Generate transaction ID with the current date
-    current_date = datetime.now().strftime("%Y-%m-%d")
+    current_date = datetime.utcnow().strftime("%Y-%m-%d")
     return f"{counter:06d}-{current_date}"
 
 
