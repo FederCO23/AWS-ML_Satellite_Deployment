@@ -1,26 +1,23 @@
-import pystac_client
+import math
+import numpy as np
+import numpy.ma as ma
 
-import json
-import boto3
-import pystac_client
+from datetime import datetime
+import os
 
+from io import BytesIO
+
+import time
+
+import pystac_client
 import rasterio
 from rasterio.crs import CRS
 from rasterio.warp import transform
 from rasterio.windows import from_bounds
 from rasterio.mask import mask
 from rasterio.windows import Window, transform as window_transform
-
-import math
-import numpy as np
-import numpy.ma as ma
-
-from geopy.distance import geodesic
 from rasterio.windows import from_bounds
-from datetime import datetime
-import os
-
-from io import BytesIO
+from geopy.distance import geodesic
 
 # -------------------
 
@@ -28,6 +25,7 @@ from io import BytesIO
 s3 = boto3.client('s3')
 
 # Define S3 bucket configuration
+            
 S3_BUCKET = "satellite-ml-solarp-detection-data"
 COUNTER_FILE = "etc/transaction_counter.txt"
 
@@ -38,8 +36,11 @@ def lambda_handler(event, context):
     """
     AWS Lambda function to fetch images from Brazil Data Cube (BDC) and store in S3.
     """
-    
+    start_time = time.time()
+    print("Lambda execution started...")
+
     try:
+        
         # Extract parameters from API Gateway request
         transaction_ID = event.get('transaction_ID')
         center_point = event.get('center_point')  # (lat, lon)
@@ -48,7 +49,13 @@ def lambda_handler(event, context):
         datetime_range = event.get('datetime_range', '2024-07-01/2024-08-31')
 
         # Connect to Brazil Data Cube
+        api_start = time.time()
+        print("Connecting to Brazil Data Cube...")
         service = pystac_client.Client.open("https://data.inpe.br/bdc/stac/v1/")
+        print("Connected to BDC in:", time.time() - api_start, "seconds")
+
+        fetch_start = time.time()
+        print("Fetching satellite images...")
         collection = service.get_collection("S2-16D-2")
 
         # Step 1 - Calculate bounding box
@@ -66,7 +73,13 @@ def lambda_handler(event, context):
         )
         
         items_list = list(item_search.items())
-        
+        print("Image fetching took:", time.time() - fetch_start, "seconds")
+
+
+        # Debug Raster Processing
+        raster_start = time.time()
+        print("Processing raster images...")
+
         if not items_list:
             return {"statusCode": 404, "body": json.dumps("No images found for the given parameters.")}
 
@@ -115,12 +128,16 @@ def lambda_handler(event, context):
         median_green_filled = median_green.filled(nodata_value).astype('float32')
         median_blue_filled = median_blue.filled(nodata_value).astype('float32')
         median_nir_filled = median_nir.filled(nodata_value).astype('float32')
+        print("Raster processing completed in:", time.time() - raster_start, "seconds")
 
         # Step 5 - Save sub-images with correct transform
         reference_transform = red_transforms[0]
         reference_crs = red_crs_list[0]
 
+        # Debug Grid images Processing
+        grid_start = time.time()
         for j in range(nb_cols):
+            rows_start = time.time()
             for i in range(nb_rows):
 
                 # Define slice bounds
@@ -143,6 +160,11 @@ def lambda_handler(event, context):
 
                 # Save directly to S3
                 s3_key = save_tile_to_s3(S3_BUCKET, transaction_ID, i, j, stacked_tile, reference_crs, tile_transform, nodata_value)
+            print(f"Row #{i} images extracted and saved:", time.time() - rows_start, "seconds")
+        print(f"Loop (cols {j} and rows{i} finished: ", time.time() - grid_start, "seconds")
+
+        total_duration = time.time() - start_time
+        print(f"Lambda completed execution in {total_duration:.2f} seconds.")
 
         return {
             "statusCode": 200,
