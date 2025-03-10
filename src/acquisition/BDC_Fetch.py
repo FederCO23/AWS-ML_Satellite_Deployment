@@ -29,7 +29,8 @@ from geopy.distance import geodesic
 
 # AWS S3 Client
 s3 = boto3.client('s3')
-batch_client = boto3.client('batch')
+#batch_client = boto3.client('batch')
+stepfunctions_client = boto3.client('stepfunctions')
 
 # Define S3 bucket configuration
             
@@ -49,9 +50,7 @@ def lambda_handler(event, context):
     try:
         
         # Extract parameters from API Gateway request
-        transaction_ID = ID_Gen()  #event.get('transaction_ID')
-        if not transaction_ID:
-            raise ValueError("Missing required parameter: 'transaction_ID'")
+        transaction_ID = ID_Gen()
         center_point = event.get('center_point')  # (lat, lon)
         if not center_point or len(center_point) != 2:
             raise ValueError("Invalid or missing 'center_point'. Expected format: [latitude, longitude]")
@@ -177,24 +176,28 @@ def lambda_handler(event, context):
         print(f"Loop (cols {j} and rows{i} finished: ", time.time() - grid_start, "seconds")
 
         total_duration = time.time() - start_time
+
         print(f"Lambda completed execution in {total_duration:.2f} seconds.")
 
-        # Considering the next workflow step: AWS Batch for Image Enhancement
-        response = batch_client.submit_job(
-            jobName=f"Imagej-enhancement-{transaction_ID}",
-            jobQueue="image-enhancement-job-queue",
-            jobDefinition="image-enhancement-job",
-            parameters={
-                "transaction_id": str(transaction_ID),
-                "scale_factor": "2"
-            }
+        print(f"Images saved to S3 under transaction_id: {transaction_ID}")
+
+        # Start Step Function Execution
+        step_function_input = {
+            "transaction_id": transaction_ID
+        }
+
+        response = stepfunctions_client.start_execution(
+            stateMachineArn="arn:aws:states:us-east-1:864981724706:stateMachine:ImageEnhancementToPrediction",
+            input=json.dumps(step_function_input)
         )
 
+        print(f"Step Function started with transaction_id {transaction_ID}")
+      
         return {
             "statusCode": 200,
             "body": json.dumps({
-                "message": f"AWS Batch job submitted for transaction {transaction_ID}",
-                "jobID": response["jobId"]
+                "message": f"Step Function started for transaction {transaction_ID}",
+                "executionArn": response["executionArn"]
             })
         }
     
