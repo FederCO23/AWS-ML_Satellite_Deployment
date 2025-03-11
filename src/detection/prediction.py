@@ -99,8 +99,9 @@ def numeric_sort_key(filepath):
 
 
 # Main Processing Function
-def process_images(transaction_id):
+def process_images():
 
+    transaction_id = os.getenv("TRANSACTION_ID")
     print(f"Processing Prediction for Transaction ID: {transaction_id}")
 
     input_s3_folder = f"image_enhancement/{transaction_id}/"
@@ -153,7 +154,4 @@ def process_images(transaction_id):
 
 # Command-line arguments
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Prediction Job for AWS Batch")
-    parser.add_argument("transaction_id", type=str, help="Transaction ID for prediction")
-    args = parser.parse_args()
-    process_images(args.transaction_id)
+    process_images()
