@@ -1,4 +1,5 @@
 
+
 import json
 import boto3
 
@@ -42,15 +43,19 @@ sub_image_pixels = 256  # input images' size
 
 def lambda_handler(event, context):
     """
-    AWS Lambda function to fetch images from Brazil Data Cube (BDC) and store in S3.
+    AWS Lambda function to fetch images from Brazil Data Cube (BDC) and store them in S3.
+    It generates a `transaction_id`, processes satellite images, saves them to S3, 
+    and triggers a Step Function to continue the workflow.
     """
     start_time = time.time()
     print("Lambda execution started...")
 
+    # Extract parameters from API Gateway request
+    transaction_ID = ID_Gen()
+    
+
     try:
-        
-        # Extract parameters from API Gateway request
-        transaction_ID = ID_Gen()
+        # Extract parameters from the event    
         center_point = event.get('center_point')  # (lat, lon)
         if not center_point or len(center_point) != 2:
             raise ValueError("Invalid or missing 'center_point'. Expected format: [latitude, longitude]")
@@ -59,6 +64,9 @@ def lambda_handler(event, context):
         ns_distance_km = event.get('ns_distance_km', 10)
         we_distance_km = event.get('we_distance_km', 10)
         datetime_range = event.get('datetime_range', '2024-07-01/2024-08-31')
+
+        # Debugging info
+        print(f"Fetching images for center: {center_point}, datetime_range: {datetime_range}")
 
         # Connect to Brazil Data Cube
         api_start = time.time()
@@ -181,26 +189,49 @@ def lambda_handler(event, context):
 
         print(f"Images saved to S3 under transaction_id: {transaction_ID}")
 
-        # Start Step Function Execution
+        # Prepare input for Step Function
         step_function_input = {
             "transaction_id": transaction_ID
         }
 
+        # Check for duplicate execution
+        running_executions = stepfunctions_client.list_executions(
+            stateMachineArn="arn:aws:states:us-east-1:864981724706:stateMachine:ImageEnhancementToPrediction",
+            statusFilter="RUNNING"
+        )
+
+        for execution in running_executions.get("executions", []):
+            execution_arn = execution["executionArn"]
+
+            # Get execution details
+            execution_details = stepfunctions_client.get_execution_history(
+                executionArn=execution_arn,
+                maxResults=1
+            )
+
+            # Check the first event for transaction_id
+            if execution_details["events"]:
+                event_input = json.loads(execution_details["events"][0]["executionStartedEventDetails"]["input"])
+                if event_input.get("transaction_id") == transaction_ID:
+                    print(f"Execution already running for transaction {transaction_ID}. Skipping duplicate trigger.")
+                    return {"statusCode": 200, "body": json.dumps({"message": "Execution already in progress."})}
+
+        print(f"No duplicate execution found. Starting Step Function for transaction {transaction_ID}.")
+
+        # Start the Step Function Execution
+        print(f"Starting Step Function for transaction: {transaction_ID}")
         response = stepfunctions_client.start_execution(
             stateMachineArn="arn:aws:states:us-east-1:864981724706:stateMachine:ImageEnhancementToPrediction",
             input=json.dumps(step_function_input)
         )
 
-        print(f"Step Function started with transaction_id {transaction_ID}")
-      
+        print(f"Step Function started with executionArn: {response['executionArn']}")
+
         return {
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": f"Step Function started for transaction {transaction_ID}",
-                "executionArn": response["executionArn"]
-            })
+            "transaction_id": transaction_ID
         }
-    
+         
+            
     except Exception as e:
         print("Error occurred:", traceback.format_exc())  # Logs the full error
         return {"statusCode": 500, "body": json.dumps(str(e))}
@@ -212,10 +243,7 @@ def ID_Gen():
     
     """Reads, increments, and updates a counter in S3, returning it in the format: NNNNNN-YYYY-MM-DD"""
     
-    s3 = boto3.client("s3")
-
     try:
-        # Attempt to fetch the current counter value from S3
         obj = s3.get_object(Bucket=S3_BUCKET, Key=COUNTER_FILE)
         content = obj["Body"].read().decode("utf-8").strip()
         counter = int(content) if content.isdigit() else 0
