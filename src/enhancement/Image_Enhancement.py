@@ -15,7 +15,8 @@ import sys
 s3 = boto3.client("s3")
 BUCKET_NAME = "satellite-ml-solarp-detection-data"
 
-
+# Set scale_factor internally
+SCALE_FACTOR = 2
 
 def read_image_s3(s3_key):
 
@@ -63,12 +64,23 @@ def save_image_s3(image_data, metadata, s3_key):
 
 
 
-def process_images(transaction_id, scale_factor):
+def process_images():
 
     """Main function to process images from S3."""
 
     start_time = time.time()
+
+    # Retrieve transaction_id and scale_factor from environment variables
+    transaction_id = os.getenv("TRANSACTION_ID")
+    scale_factor = SCALE_FACTOR  # Default = 2
+
     print(f"Processing Transaction ID: {transaction_id}")
+
+    if not transaction_id:
+        print("ERROR: TRANSACTION_ID is missing.")
+        return
+
+    print(f"Processing Transaction ID: {transaction_id} with scale factor {scale_factor}")
 
     s3_folder = f"acquisition/{transaction_id}/"
 
@@ -101,10 +113,5 @@ def process_images(transaction_id, scale_factor):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Image Enhancement for AWS Batch")
-    parser.add_argument("transaction_id", type=str, help="Transaction ID for image processing")
-    parser.add_argument("--scale_factor", type=int, default=2, help="Upscaling factor (default=2)")
-
-    args = parser.parse_args()
-    process_images(args.transaction_id, args.scale_factor)
+    process_images()
 
