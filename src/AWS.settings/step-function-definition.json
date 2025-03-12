@@ -1,0 +1,43 @@
+{
+    "Comment": "Step Function to orchestrate the workflow: BDC Acquisition -> Image Enhancement -> Prediction",
+    "StartAt": "RunBDC_Acquisition",
+    "States": {
+        "RunBDC_Acquisition": {
+            "Type": "Task",
+            "Resource": "arn:aws:lambda:us-east-1:864981724706:function:BDC_Acquisition",
+            "Next": "RunImageEnhancementJob",
+            "ResultPath": "$.acquisition_result"
+        },
+        "RunImageEnhancementJob": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::batch:submitJob.sync",
+            "Parameters": {
+                "JobName": "image-enhancement-job",
+                "JobQueue": "arn:aws:batch:us-east-1:864981724706:job-queue/image-enhancement-job-queue",
+                "JobDefinition": "image-enhancement-job:8",
+                "ContainerOverrides": {
+                    "Environment": [
+                        { "Name": "TRANSACTION_ID", "Value.$": "$.acquisition_result.transaction_id" }
+                    ]
+                }
+            },
+            "ResultPath": "$.image_enhancement_result",
+            "Next": "RunPredictionJob"
+        },
+        "RunPredictionJob": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::batch:submitJob.sync",
+            "Parameters": {
+                "JobName": "prediction-job",
+                "JobQueue": "arn:aws:batch:us-east-1:864981724706:job-queue/prediction-job-queue",
+                "JobDefinition": "prediction-job:3",
+                "ContainerOverrides": {
+                    "Environment": [
+                        { "Name": "TRANSACTION_ID", "Value.$": "$.acquisition_result.transaction_id" }
+                    ]
+                }
+            },
+            "End": true
+        }
+    }
+}
