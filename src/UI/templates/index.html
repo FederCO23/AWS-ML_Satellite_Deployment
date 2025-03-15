@@ -2,87 +2,107 @@
 <html lang="en">
 <head>
     <title>Solar Plant Detection through Satellite Imagery (Sentinel-2)</title>
-    <script>
-        async function startWorkflow() {
-            let lat = parseFloat(document.getElementById("latitude").value);
-            let lon = parseFloat(document.getElementById("longitude").value);
-            let ns = parseInt(document.getElementById("ns_distance").value);
-            let we = parseInt(document.getElementById("we_distance").value);
+<script>
+    async function startWorkflow() {
+        let lat = parseFloat(document.getElementById("latitude").value);
+        let lon = parseFloat(document.getElementById("longitude").value);
+        let ns = parseInt(document.getElementById("ns_distance").value);
+        let we = parseInt(document.getElementById("we_distance").value);
 
-            // Brazil Data Cube Coverage Bounds
-            const LAT_MIN = -34.6755645921443;
-            const LAT_MAX = 5.76326400552693;
-            const LON_MIN = -74.871069;
-            const LON_MAX = -28.0062080416543;
+        // Brazil Data Cube Coverage Bounds
+        const LAT_MIN = -34.6755645921443;
+        const LAT_MAX = 5.76326400552693;
+        const LON_MIN = -74.871069;
+        const LON_MAX = -28.0062080416543;
 
-            // Validate latitude and longitude
-            if (isNaN(lat) || isNaN(lon)) {
-                alert("Please enter valid numerical values for latitude and longitude.")
-                return;
-            }
-
-            if (lat < LAT_MIN || lat > LAT_MAX || lon < LON_MIN || lon > LON_MAX) {
-                alert("Zone out of Brazil Data Cube bounds.");
-                return;
-            }
-
-            let response = await fetch("/start", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    center_point: [lat, lon],
-                    ns_distance_km: ns, 
-                    we_distance_km: we
-                })
-            });
-
-            let data = await response.json();
-            document.getElementById("status").innerText = "Processing...";
-
-            if (data.executionArn) {
-                checkStatus(data.executionArn);
-            } else {
-                document.getElementById("status").innerText = "Error: " + data.error;
-            }
-
+        if (isNaN(lat) || isNaN(lon)) {
+            alert("Please enter valid numerical values for latitude and longitude.");
+            return;
         }
 
-        async function checkStatus(executionArn) {
-            let response = await fetch("/status", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ executionArn: executionArn })
-            });
-
-            let data = await response.json();
-            document.getElementById("status").innerText = "Status: " + data.status;
-
-            if (data.status === "SUCCEEDED") {
-                document.getElementById("download").style.display = "block";
-            } else {
-                setTimeout(() => checkStatus(executionArn), 5000);
-            }
+        if (lat < LAT_MIN || lat > LAT_MAX || lon < LON_MIN || lon > LON_MAX) {
+            alert("Zone out of Brazil Data Cube bounds.");
+            return;
         }
 
-        async function getReport() {
-            let transactionId = document.getElementById("transaction_id").value;
-            let response = await fetch("/report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ transaction_id: transactionId })
-            });
+        let response = await fetch("https://j4zkohkobg.execute-api.us-east-1.amazonaws.com/dev/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                center_point: [lat, lon],
+                ns_distance_km: ns, 
+                we_distance_km: we
+            })
+        });
 
-            let data = await response.json();
-            window.open(data.report_url, "_blank");
+        let data = await response.json();
+        logStatus("Starting analysis...");
+        
+        if (data.executionArn) {
+            logStatus(`Workflow started! Tracking execution: ${data.executionArn}`);
+            checkStatus(data.executionArn);
+        } else {
+            logStatus(`Error: ${data.error}`);
         }
-    </script>
+    }
+
+let lastLoggedStep = null;  // Store last logged step to avoid duplicates
+
+async function checkStatus(executionArn) {
+    try {
+        let response = await fetch(`https://j4zkohkobg.execute-api.us-east-1.amazonaws.com/dev/status?executionArn=${executionArn}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+        }
+
+        let data = await response.json();
+        
+        // Log only if the step has changed
+        if (data.current_step !== lastLoggedStep) {
+            logStatus(`Status: ${data.status} - Step: ${data.current_step || "Unknown"}`);
+            lastLoggedStep = data.current_step;  // Update last logged step
+        }
+
+        if (data.status === "SUCCEEDED") {
+            logStatus("Processing complete!");
+        } else if (data.status === "FAILED") {
+            logStatus("Processing failed.");
+        } else {
+            setTimeout(() => checkStatus(executionArn), 5000);  // Continue polling
+        }
+    } catch (error) {
+        logStatus(`Error fetching status: ${error.message}`);
+    }
+}
+
+function logStatus(message) {
+    let logDiv = document.getElementById("log-container");
+    let p = document.createElement("p");
+    p.innerText = new Date().toLocaleTimeString() + " - " + message;
+    logDiv.appendChild(p);
+    logDiv.scrollTop = logDiv.scrollHeight;  // Auto-scroll
+}
+
+ 
+    function logStatus(message) {
+        let logDiv = document.getElementById("log-container");
+        let logEntry = document.createElement("p");
+        logEntry.innerText = `${new Date().toLocaleTimeString()} - ${message}`;
+        logDiv.appendChild(logEntry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+</script>
+
 </head>
 <body>
 <div class="container">
     <h2>Solar Plant Detection through Satellite Imagery (Sentinel-2)</h2>
     <div class="form-box">
         <h3>Zone of Detection</h3>
-
         <div class="row">
             <div class="col">
                 <label>Latitude:</label>
@@ -93,57 +113,26 @@
                 <input type="text" id="longitude" placeholder="Ex: -47.725772">
             </div>
         </div>
-
         <label>North-South Distance (km):</label>
         <input type="number" id="ns_distance"><br>
-
         <label>West-East Distance (km):</label>
         <input type="number" id="we_distance"><br>
-
         <button onclick="startWorkflow()">Start Analysis</button>
-        <p id="status"></p>
+
+        <h3>Status Logs</h3>
+        <div id="log-container" class="log-box"></div>
     </div>
 </div>
 
 <style>
-    .container {
-        width: 400px;
-        margin: auto;
-        text-align: center;
-    }
-    .form-box {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0px 0px 5px #ccc;
-    }
-    .row {
-        display: flex;
-        justify-content: space-between;
-    }
-    .col {
-        flex: 1;
-        padding: 5px;
-    }
-    input {
-        width: 100%;
-        padding: 8px;
-        margin: 5px 0;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-    button {
-        background: #007bff;
-        color: white;
-        padding: 10px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        width: 100%;
-    }
-    button:hover {
-        background: #0056b3;
-    }
+    .container { width: 400px; margin: auto; text-align: center; }
+    .form-box { background: #f8f9fa; padding: 15px; border-radius: 8px; box-shadow: 0px 0px 5px #ccc; }
+    .row { display: flex; justify-content: space-between; }
+    .col { flex: 1; padding: 5px; }
+    input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+    button { background: #007bff; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
+    button:hover { background: #0056b3; }
+    .log-box { height: 150px; overflow-y: scroll; background: #e9ecef; padding: 10px; border: 1px solid #ccc; border-radius: 5px; text-align: left; }
 </style>
 </body>
 </html>
