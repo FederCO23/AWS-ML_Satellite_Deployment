@@ -1,7 +1,11 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, send_file
 import boto3
 import json
 import logging
+import zipfile
+import io
+import os
+
 
 app = Flask(__name__)
 
@@ -20,6 +24,9 @@ stepfunctions = boto3.client("stepfunctions", region_name=AWS_REGION)
 logging.basicConfig(filename='flask.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())  # Send logs to CloudWatch
+
+s3_client = boto3.client("s3", region_name=AWS_REGION)
+
 
 @app.route("/", methods=["GET"])
 def home():
@@ -70,6 +77,8 @@ def start_workflow():
         logger.error(f"Unexpected Error: {str(e)}")
         return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
 
+
+
 @app.route("/status", methods=["GET"])
 def check_status():
     try:
@@ -84,24 +93,116 @@ def check_status():
         # Fetch execution history
         history_response = stepfunctions.get_execution_history(
             executionArn=execution_arn, 
-            maxResults=10,  # Get more recent events
+            maxResults=10,  # Get the most recent events
             reverseOrder=True  # Get newest events first
         )
 
         events = history_response.get("events", [])
-
-        # Extract the latest step
+        
+        # Extract the correct step name
         current_step = "Unknown"
         for event in events:
-            if "stateEnteredEventDetails" in event:
+            if "stateEnteredEventDetails" in event and "name" in event["stateEnteredEventDetails"]:
                 current_step = event["stateEnteredEventDetails"]["name"]
                 break  # Take the most recent step
 
-        return jsonify({"status": status, "current_step": current_step})
+        # Extract transaction_id from execution output
+        transaction_id = None
+        if "output" in response:
+            try:
+                output_data = json.loads(response["output"])
+                if "Container" in output_data and "Environment" in output_data["Container"]:
+                    for env_var in output_data["Container"]["Environment"]:
+                        if env_var["Name"] == "TRANSACTION_ID":
+                            transaction_id = env_var["Value"]
+                            break
+            except json.JSONDecodeError:
+                pass  # Ignore JSON errors
+
+        return jsonify({
+            "status": status,
+            "current_step": current_step,
+            "transaction_id": transaction_id  # Now always included
+        })
 
     except Exception as e:
-        logger.error(f"Error fetching status: {str(e)}")
-        return jsonify({"error": "Failed to retrieve execution status"}), 500
+        return jsonify({"error": f"Failed to retrieve execution status: {str(e)}"}), 500
+
+
+
+@app.route("/get-report", methods=["GET"])
+def get_report():
+    transaction_id = request.args.get("transaction_id")
+    if not transaction_id:
+        logger.error("Transaction ID is missing in the request")
+        return jsonify({"error": "Missing transaction_id"}), 400
+
+    # Construct the key for report.html
+    report_key = f"reports/{transaction_id}/report.html"
+
+    try:
+        # Debug: Log transaction_id and report_key
+        logger.info(f"Fetching report for transaction_id: {transaction_id}")
+        logger.info(f"Constructed S3 report key: {report_key}")
+
+        # Generate a pre-signed URL for report.html
+        presigned_url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": S3_BUCKET, "Key": report_key},
+            ExpiresIn=3600  # 1-hour expiration
+        )
+
+        logger.info(f"Generated pre-signed URL: {presigned_url}")
+        return jsonify({"report_url": presigned_url})
+
+    except Exception as e:
+        logger.error(f"Error fetching report: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+
+@app.route("/download-results", methods=["GET"])
+def download_results():
+    transaction_id = request.args.get("transaction_id")
+    if not transaction_id:
+        return jsonify({"error": "Missing transaction_id"}), 400
+
+    # List of files to download
+    files = [
+        f"reports/{transaction_id}/overlay.png",
+        f"reports/{transaction_id}/report.html",
+        f"reports/{transaction_id}/input.png",
+        f"reports/{transaction_id}/prediction.png"
+    ]
+
+    # Create an in-memory ZIP file
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for file_key in files:
+            try:
+                obj = s3_client.get_object(Bucket=S3_BUCKET, Key=file_key)
+                zip_file.writestr(os.path.basename(file_key), obj["Body"].read())
+            except Exception as e:
+                logging.error(f"Error adding {file_key} to ZIP: {str(e)}")
+
+    zip_buffer.seek(0)
+
+    #Now we set the filename to transaction_id.zip
+    zip_filename = f"{transaction_id}.zip"
+    
+    # Upload ZIP to S3
+    zip_key = f"reports/{transaction_id}/{zip_filename}"
+    s3_client.put_object(Bucket=S3_BUCKET, Key=zip_key, Body=zip_buffer.getvalue(), ContentType="application/zip")
+
+    # Generate a pre-signed URL
+    presigned_url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": S3_BUCKET, "Key": zip_key},
+        ExpiresIn=3600  # 1-hour expiry
+    )
+
+    return jsonify({"download_url": presigned_url})
+
 
 
 def _corsify_response(response):
