@@ -48,6 +48,8 @@
 
 let lastLoggedStep = null;  // Store last logged step to avoid duplicates
 
+
+
 async function checkStatus(executionArn) {
     try {
         let response = await fetch(`https://j4zkohkobg.execute-api.us-east-1.amazonaws.com/dev/status?executionArn=${executionArn}`, {
@@ -60,24 +62,96 @@ async function checkStatus(executionArn) {
         }
 
         let data = await response.json();
-        
+
         // Log only if the step has changed
         if (data.current_step !== lastLoggedStep) {
             logStatus(`Status: ${data.status} - Step: ${data.current_step || "Unknown"}`);
-            lastLoggedStep = data.current_step;  // Update last logged step
+            lastLoggedStep = data.current_step;
         }
 
-        if (data.status === "SUCCEEDED") {
-            logStatus("Processing complete!");
-        } else if (data.status === "FAILED") {
-            logStatus("Processing failed.");
-        } else {
-            setTimeout(() => checkStatus(executionArn), 5000);  // Continue polling
+        // If the transaction_id is available, fetch overlay and statistics
+        if (data.transaction_id) {
+            displayOverlay(data.transaction_id);
+            fetchReport(data.transaction_id);  // FIXED: Pass `transaction_id` instead of `executionArn`
         }
+
+        // Continue polling if the process is not complete
+        if (data.status !== "SUCCEEDED") {
+            setTimeout(() => checkStatus(executionArn), 5000);
+        }
+
     } catch (error) {
         logStatus(`Error fetching status: ${error.message}`);
     }
 }
+
+
+
+function displayOverlay(transaction_id) {
+    logStatus("Processing complete! Displaying overlay image.");
+    let overlayUrl = `https://satellite-ml-solarp-detection-data.s3.amazonaws.com/reports/${transaction_id}/overlay.png`;
+    let overlayImg = document.getElementById("overlayImage");
+    overlayImg.src = overlayUrl;
+    overlayImg.style.display = "block";  // Ensure visibility
+}
+
+
+
+async function fetchReport(transaction_id) {
+    try {
+        let reportUrl = `https://satellite-ml-solarp-detection-data.s3.amazonaws.com/reports/${transaction_id}/report.html`;
+
+        let response = await fetch(reportUrl);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        let reportHtml = await response.text();
+
+        // Parse the HTML and extract the correct table
+        let parser = new DOMParser();
+        let doc = parser.parseFromString(reportHtml, "text/html");
+        let tables = doc.getElementsByTagName("table");
+
+        if (tables.length > 0) {
+            let statisticsTable = tables[0];  // Assuming the first table is the statistics table
+            document.getElementById("statisticsContainer").innerHTML = "<h3>Statistics</h3>" + statisticsTable.outerHTML;
+
+            // Add the download button after displaying statistics
+            document.getElementById("downloadContainer").innerHTML = `
+                <button onclick="downloadResults('${transaction_id}')">Download Results</button>
+            `;
+        } else {
+            document.getElementById("statisticsContainer").innerHTML = "<p style='color:red;'>Error: No statistics table found in the report.</p>";
+        }
+    } catch (error) {
+        document.getElementById("statisticsContainer").innerHTML = `<p style='color:red;'>Error fetching statistics: ${error.message}</p>`;
+    }
+}
+
+
+
+// Function to trigger the download
+async function downloadResults(transaction_id) {
+    try {
+        let response = await fetch(`https://j4zkohkobg.execute-api.us-east-1.amazonaws.com/dev/download-results?transaction_id=${transaction_id}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        let data = await response.json();
+        if (data.download_url) {
+            // Automatically trigger the download
+            window.location.href = data.download_url;
+        } else {
+            alert("Error: Unable to generate download link.");
+        }
+    } catch (error) {
+        alert("Error fetching download link: " + error.message);
+    }
+}
+
+
 
 function logStatus(message) {
     let logDiv = document.getElementById("log-container");
@@ -134,5 +208,13 @@ function logStatus(message) {
     button:hover { background: #0056b3; }
     .log-box { height: 150px; overflow-y: scroll; background: #e9ecef; padding: 10px; border: 1px solid #ccc; border-radius: 5px; text-align: left; }
 </style>
+
+<h3>Detection Mosaic Overlay</h3>
+<img id="overlayImage" src="" alt="Overlay Image" style="max-width: 100%; height: auto; display: none;">
+
+<div id="statisticsContainer" style="width: 100%; overflow-x: auto; border: 1px solid #ccc; padding: 10px;"></div>
+
+<div id="downloadContainer" style="margin-top: 20px;"></div>
+
 </body>
 </html>
