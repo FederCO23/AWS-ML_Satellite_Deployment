@@ -187,11 +187,15 @@ def compute_statistics(prediction_keys, sub_image_shape, scale=5):
         cell_positives = np.sum(pred_img > 0)
         total_pixels += cell_pixels
         positive_pixels += cell_positives
+        cell_area = cell_pixels * scale * scale * 10**-6
+        positive_area = cell_positives * scale * scale
         
         stats.append({
             "Cell": i + 1,
-            "Total Pixels": cell_pixels,
-            "Positive Pixels": cell_positives,
+            "Total Pixels": f"{cell_pixels:,}",
+            "Total Area (km^2)": f"{cell_area:,.3f}",
+            "Positive Pixels": f"{cell_positives:,}",
+            "Positive Area (m^2)": f"{positive_area:,}",
             "Coverage %": (cell_positives / cell_pixels) * 100
         })
     
@@ -209,7 +213,7 @@ html_content = f"""
 <body>
 <h2>Satellite Report for {TRANSACTION_ID}</h2>
 <h3>Satellite imagery and detection mosaic overlay</h3>
-<img src='{overlay_key}' width='800'>
+<img src='overlay.png' width='800'>
 <h3>Statistics</h3>
 {stats_df.to_html(index=False)}
 </body>
