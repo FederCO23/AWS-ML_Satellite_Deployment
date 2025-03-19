@@ -26,5 +26,3 @@ COPY Image_Enhancement.py /app/
 # Define the entrypoint (default execution)
 ENTRYPOINT ["python", "/app/Image_Enhancement.py"]
 
-# Allow command-line arguments to be passed
-CMD ["test-transaction", "--scale_factor", "2"]
