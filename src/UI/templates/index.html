@@ -171,10 +171,70 @@ function logStatus(message) {
     }
 </script>
 
+<style>
+        .container {
+            width: 420px;
+            margin: auto;
+            text-align: center;
+        }
+        .form-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 5px #ccc;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .col {
+            flex: 1;
+            padding: 5px;
+        }
+        input {
+            width: 95%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .distance-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .distance-container input {
+            width: 45%;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log-box {
+            height: 150px;
+            overflow-y: auto;
+            background: #e9ecef;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: left;
+            max-height: 200px;
+        }
+    </style>
 </head>
+
 <body>
 <div class="container">
-    <h2>Solar Plant Detection through Satellite Imagery (Sentinel-2)</h2>
+    <h2>Solar Power Mapping in Brazil: Sentinel-2 ML Detection</h2>
     <div class="form-box">
         <h3>Zone of Detection</h3>
         <div class="row">
@@ -197,17 +257,6 @@ function logStatus(message) {
         <div id="log-container" class="log-box"></div>
     </div>
 </div>
-
-<style>
-    .container { width: 400px; margin: auto; text-align: center; }
-    .form-box { background: #f8f9fa; padding: 15px; border-radius: 8px; box-shadow: 0px 0px 5px #ccc; }
-    .row { display: flex; justify-content: space-between; }
-    .col { flex: 1; padding: 5px; }
-    input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
-    button { background: #007bff; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; width: 100%; }
-    button:hover { background: #0056b3; }
-    .log-box { height: 150px; overflow-y: scroll; background: #e9ecef; padding: 10px; border: 1px solid #ccc; border-radius: 5px; text-align: left; }
-</style>
 
 <h3>Detection Mosaic Overlay</h3>
 <img id="overlayImage" src="" alt="Overlay Image" style="max-width: 100%; height: auto; display: none;">
