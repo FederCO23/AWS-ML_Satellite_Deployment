@@ -1,5 +1,5 @@
 {
-    "Comment": "Step Function to orchestrate the workflow: BDC Acquisition -> Image Enhancement -> Prediction",
+    "Comment": "Step Function to orchestrate the workflow: BDC Acquisition -> Image Enhancement -> Prediction -> Report",
     "StartAt": "RunBDC_Acquisition",
     "States": {
         "RunBDC_Acquisition": {
@@ -21,7 +21,7 @@
                     ]
                 }
             },
-            "ResultPath": "$.image_enhancement_result",
+            "ResultPath": "$.acquisition_result",
             "Next": "RunPredictionJob"
         },
         "RunPredictionJob": {
@@ -33,7 +33,25 @@
                 "JobDefinition": "prediction-job:3",
                 "ContainerOverrides": {
                     "Environment": [
-                        { "Name": "TRANSACTION_ID", "Value.$": "$.acquisition_result.transaction_id" }
+                        { "Name": "TRANSACTION_ID", "Value.$": "$.acquisition_result.Container.Environment[1].Value"
+ }
+                    ]
+                }
+            },
+            "ResultPath": "$.acquisition_result",
+            "Next": "RunReportJob"
+        },
+        "RunReportJob": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::batch:submitJob.sync",
+            "Parameters": {
+                "JobName": "report-job",
+                "JobQueue": "arn:aws:batch:us-east-1:864981724706:job-queue/report-job-queue",
+                "JobDefinition": "report-job:1",
+                "ContainerOverrides": {
+                    "Environment": [
+                        { "Name": "TRANSACTION_ID", "Value.$": "$.acquisition_result.Container.Environment[1].Value"
+ }
                     ]
                 }
             },
