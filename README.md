@@ -1,7 +1,7 @@
 # **AWS-Based Deployment for a Solar Plant Detection from Satellite Imagery**
 
 ## **Overview**
-This repository implements an end-to-end Machine Learning pipeline for detecting solar plants in Brazil using Sentinel-2 satellite imagery. The system automates **data acquisition, image enhancement, model inference, and report generation**, leveraging AWS services for scalable and cost-effective deployment.
+This repository implements an end-to-end Machine Learning pipeline for automating the detection of solar plants across Brazil using Sentinel-2 satellite imagery. The system automates **data acquisition, image enhancement, model inference, and report generation**, leveraging AWS services for scalable and cost-effective deployment.
 
 ## **System Architecture**
 The workflow is orchestrated using **AWS Step Functions**, with **AWS Lambda** functions and jobs executed via **AWS Batch**. It includes the following components:
@@ -15,7 +15,7 @@ The workflow is orchestrated using **AWS Step Functions**, with **AWS Lambda** f
 2. **Acquisition Module (BDC_Acquisition):** Fetches **Sentinel-2 imagery** from **Brazil Data Cubes** using an AWS Lambda function.
 3. **Image Enhancement Module:** Processes raw images to enhance clarity using advanced filtering and bi-cubic interpolation techniques.
 4. **Prediction Module:** Uses a **U-Net deep learning model** to perform semantic segmentation for solar plants detection.
-5. **Report Generation:** Creates an **overlay image** applying mosaicking technique from the inputs and predicted images, and also summary statistics, accessible via a downloadable report.
+5. **Report Generation:** Generates composite **overlays** by mosaicking input and predicted images, accessible via a downloadable report.
 
 ## **Repository Structure**
 ```
@@ -66,7 +66,7 @@ AWS-ML_Satellite_Deployment/
 ## **Deployment Workflow**
 The system is deployed using **AWS Step Functions**, connecting multiple AWS services:
 
-1. **User Input (API Gateway + AWS Lambda):** The user provides latitude, longitude, and distance parameters. Frontend based on JavaScript + HTML and Backend based on Flask + Python.
+1. **User Input (API Gateway + AWS Lambda):** The user provides latitude, longitude, and distance parameters. Frontend: JavaScript + HTML | Backend: Flask + Python.
 2. **Data Acquisition (AWS Lambda):** Fetches Sentinel-2 data.
 3. **Image Processing (AWS Batch Job):** Enhances satellite images.
 4. **Model Prediction (AWS Batch Job):** Identifies solar panels.
