@@ -1,5 +1,4 @@
 
-
 import json
 import boto3
 
@@ -47,6 +46,19 @@ def lambda_handler(event, context):
     It generates a `transaction_id`, processes satellite images, saves them to S3, 
     and triggers a Step Function to continue the workflow.
     """
+
+    # ---
+    # Start provisioning the compute environment for the following Batch Jobs in the workflow
+    batch = boto3.client('batch')
+    response = batch.update_compute_environment(
+        computeEnvironment='image_enhancement_2',
+        computeResources={'desiredvCpus': 4}
+    )
+
+    print("Compute environment update initiated:", response)
+    # ---
+
+
     start_time = time.time()
     print("Lambda execution started...")
 
