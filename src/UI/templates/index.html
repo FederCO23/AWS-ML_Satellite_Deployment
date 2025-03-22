@@ -4,6 +4,10 @@
     <title>Solar Plant Detection through Satellite Imagery (Sentinel-2)</title>
 <script>
     async function startWorkflow() {
+
+        toggleStartButton(false)
+        document.getElementById("log-container").innerHTML = "";
+
         let lat = parseFloat(document.getElementById("latitude").value);
         let lon = parseFloat(document.getElementById("longitude").value);
         let ns = parseInt(document.getElementById("ns_distance").value);
@@ -24,6 +28,25 @@
             alert("Zone out of Brazil Data Cube bounds.");
             return;
         }
+        
+        // Reset UI elements       
+        document.getElementById("overlayImage").style.display = "none";
+        document.getElementById("overlay-title").style.display = "none";
+        document.getElementById("statisticsContainer").style.display = "none";
+        document.getElementById("statisticsContainer").innerHTML = "";
+        document.getElementById("downloadContainer").innerHTML = "";
+
+
+        // Show the spinner & step list
+        document.getElementById("spinner").style.display = "block";
+        document.getElementById("steps-list").style.display = "block";
+        document.getElementById("steps-title").style.display = "block";
+
+        const stepItems = document.querySelectorAll(".step-item");
+        stepItems.forEach(item => {
+            item.classList.remove("active", "checked");
+        });
+
 
         let response = await fetch("https://j4zkohkobg.execute-api.us-east-1.amazonaws.com/dev/start", {
             method: "POST",
@@ -43,7 +66,12 @@
             checkStatus(data.executionArn);
         } else {
             logStatus(`Error: ${data.error}`);
+
+            // If there's an error right away, hide the spinner again:
+            document.getElementById("spinner").style.display = "none";
+            toggleStartButton(true)
         }
+
     }
 
 let lastLoggedStep = null;  // Store last logged step to avoid duplicates
@@ -69,28 +97,59 @@ async function checkStatus(executionArn) {
             lastLoggedStep = data.current_step;
         }
 
-        // If the transaction_id is available, fetch overlay and statistics
-        if (data.transaction_id) {
-            displayOverlay(data.transaction_id);
-            fetchReport(data.transaction_id);  // FIXED: Pass `transaction_id` instead of `executionArn`
+        // Show progress list if hidden
+        document.getElementById("steps-list").style.display = "block";
+        document.getElementById("steps-title").style.display = "block";
+
+        // Step condition handling
+        if (data.status === "RUNNING") {
+            updateStepStatus(data.current_step, "RUNNING");
         }
 
-        // Continue polling if the process is not complete
-        if (data.status !== "SUCCEEDED") {
+        if (data.status === "SUCCEEDED") {
+            updateStepStatus("ReportDone", "SUCCEEDED");
+            document.getElementById("spinner").style.display = "none";
+            toggleStartButton(true)        
+
+                // Call overlay and stats display
+                if (data.transaction_id) {
+                    displayOverlay(data.transaction_id);
+                    fetchReport(data.transaction_id);
+                }
+
+         } else if (data.status === "FAILED" || data.status === "TIMED_OUT") {
+             // If you want to hide spinner upon failure
+             document.getElementById("spinner").style.display = "none";
+             toggleStartButton(true)        
+
+        } else {
+            // Continue polling if the process is not complete
             setTimeout(() => checkStatus(executionArn), 5000);
         }
 
     } catch (error) {
         logStatus(`Error fetching status: ${error.message}`);
+        // Hide spinner if you want on error
+        document.getElementById("spinner").style.display = "none";
+        toggleStartButton(true)        
+
     }
 }
 
 
 
 function displayOverlay(transaction_id) {
+
     logStatus("Processing complete! Displaying overlay image.");
     let overlayUrl = `https://satellite-ml-solarp-detection-data.s3.amazonaws.com/reports/${transaction_id}/overlay.png`;
     let overlayImg = document.getElementById("overlayImage");
+    let overlayTitle = document.getElementById("overlay-title");
+
+
+    overlayImg.onload = () => {
+        overlayTitle.style.display = "block"; // Show title only when image loads
+    };
+
     overlayImg.src = overlayUrl;
     overlayImg.style.display = "block";  // Ensure visibility
 }
@@ -105,6 +164,9 @@ async function fetchReport(transaction_id) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+
+        document.getElementById("statisticsContainer").style.display = "block";
 
         let reportHtml = await response.text();
 
@@ -151,16 +213,6 @@ async function downloadResults(transaction_id) {
     }
 }
 
-
-
-function logStatus(message) {
-    let logDiv = document.getElementById("log-container");
-    let p = document.createElement("p");
-    p.innerText = new Date().toLocaleTimeString() + " - " + message;
-    logDiv.appendChild(p);
-    logDiv.scrollTop = logDiv.scrollHeight;  // Auto-scroll
-}
-
  
     function logStatus(message) {
         let logDiv = document.getElementById("log-container");
@@ -169,6 +221,32 @@ function logStatus(message) {
         logDiv.appendChild(logEntry);
         logDiv.scrollTop = logDiv.scrollHeight;
     }
+
+
+function updateStepStatus(stepName, status) {
+    const stepMap = {
+        "RunBDC_Acquisition": "step1",
+        "RunImageEnhancementJob": "step2",
+        "RunPredictionJob": "step3",
+        "RunReportJob": "step4",
+        "ReportDone": "step5"
+    };
+
+    const stepId = stepMap[stepName];
+    if (!stepId) return;
+
+    const el = document.getElementById(stepId);
+    if (el) {
+        el.classList.add("active", "checked");
+    }
+}
+
+function toggleStartButton(enabled) {
+    document.querySelector("button").disabled = !enabled;
+}
+
+
+
 </script>
 
 <style>
@@ -229,6 +307,27 @@ function logStatus(message) {
             text-align: left;
             max-height: 200px;
         }
+
+
+.step-item {
+  color: gray;
+  font-weight: normal;
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.step-item.active {
+  color: #000;
+  font-weight: bold;
+}
+
+.step-item.checked::after {
+  content: " ✔";
+  color: green;
+  font-weight: bold;
+}
+
+
     </style>
 </head>
 
@@ -253,15 +352,36 @@ function logStatus(message) {
         <input type="number" id="we_distance"><br>
         <button onclick="startWorkflow()">Start Analysis</button>
 
-        <h3>Status Logs</h3>
-        <div id="log-container" class="log-box"></div>
-    </div>
+
+        <!-- Spinner (initially hidden) -->
+<div id="spinner" style="display:none; margin: 10px 0;">
+  <img src="{{ url_for('static', filename='spinner.gif') }}" alt="Loading..." style="width:30px; height:30px;" />
 </div>
 
-<h3>Detection Mosaic Overlay</h3>
+
+<!-- Workflow Steps List -->
+<h3 id="steps-title" style="display: none; text-align: left; padding-left: 20px;">Workflow Progress:</h3>
+<ul id="steps-list" style="list-style-type: none; padding-left: 20px; display: none; text-align: left;">
+  <li id="step1" class="step-item">1. Backend activated</li>
+  <li id="step2" class="step-item">2. Fetch BDC images</li>
+  <li id="step3" class="step-item">3. Image Enhancement</li>
+  <li id="step4" class="step-item">4. Inference</li>
+  <li id="step5" class="step-item">5. Report</li>
+</ul>
+
+<h3 id="workflow-status-logs" style="text-align:left; padding-left: 20px;" >Workflow Status Log</h3>
+
+        <div id="log-container" class="log-box"></div>
+
+
+        </div>
+
+</div>
+
+<h3 id="overlay-title" style="display:none;">Detection Mosaic Overlay</h3>
 <img id="overlayImage" src="" alt="Overlay Image" style="max-width: 100%; height: auto; display: none;">
 
-<div id="statisticsContainer" style="width: 100%; overflow-x: auto; border: 1px solid #ccc; padding: 10px;"></div>
+<div id="statisticsContainer" style="width: 100%; overflow-x: auto; border: 1px solid #ccc; padding: 10px; display: none;"></div>
 
 <div id="downloadContainer" style="margin-top: 20px;"></div>
 

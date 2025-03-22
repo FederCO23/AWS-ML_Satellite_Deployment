@@ -7,7 +7,7 @@ import io
 import os
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # AWS Setup
 AWS_REGION = "us-east-1"
