@@ -53,6 +53,10 @@ if __name__ == '__main__':
             with rasterio.open(file) as src:
                 profile = src.profile  # Save metadata/profile
                 data = src.read()      
+                
+                # Cancel compression
+                profile.pop('compress', None)
+                profile['compress'] = 'none'
 
             # Set all pixel values to zero
             zero_data = np.zeros_like(data)
