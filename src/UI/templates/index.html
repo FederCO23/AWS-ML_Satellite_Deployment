@@ -28,7 +28,12 @@
             alert("Zone out of Brazil Data Cube bounds.");
             return;
         }
-        
+
+        if (ns > 35 || we > 35 || (ns * we) > 900) {
+            alert("The selected detection area is too large for the current available computing resources. Please try a smaller area. This limitation may be lifted in future updates as we expand our infrastructure.");
+            return;
+        }
+                
         // Reset UI elements       
         document.getElementById("overlayImage").style.display = "none";
         document.getElementById("overlay-title").style.display = "none";
