@@ -87,6 +87,6 @@ For cloud deployment, ensure the following:
 
 ## **Future Improvements**
 - **Optimize inference speed** using more powerful GPUs (limited in this project considering Budget constraints).
-- **Expand beyond Brazil** for global solar plant detection.
+- **Postprocessing** use connected component filtering to remove very small predictions. Filtering noise with area-based rules.
 - **Improve the web UI** for better user experience.
 - **Add time filtering** for time-line analysis.
