@@ -25,7 +25,9 @@ AWS-ML_Satellite_Deployment/
 │
 ├── models/
 │   ├── Model_inference.ipynb   # Test Notebook for running the trained model inference
-│
+├── doc/
+│   ├── Deployment_Plan.pdf 
+│   ├── Deployment_Solution_Architecture.pdf
 ├── src/
 │   ├── acquisition/
 │   │   ├── BDC_Fetch.py        # Fetches images from Brazil Data Cube
