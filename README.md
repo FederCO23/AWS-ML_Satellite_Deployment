@@ -83,12 +83,17 @@ The demo application is deployed on AWS, and because the resources used are paid
 🔗 GitHub: [github.com/FederCO23](https://github.com/FederCO23)  
 💼 LinkedIn: [Federico Bessi](https://www.linkedin.com/in/federicobessi/)
 
+## 🌍 **Sample Results from Satellite-Based Detection**
+This project includes a semantic segmentation model that analyzes Sentinel-2 satellite images to detect photovoltaic solar plants. Below are sample outputs showing the effectiveness of the model.
 
-## **AWS Deployment**
-For cloud deployment, ensure the following:
-- **AWS IAM Roles & Policies** are correctly set.
-- **Docker images** are built and pushed to **Amazon ECR**.
-- **AWS Batch Jobs** are correctly configured.
+The left images show the input variables. The right images displays the model’s prediction in a overlay image highlighting the detection in cyan color.
+
+🛰️ Example 1: Taboquinha DF Solar Plant
+<p align="center"> <img src="sup_images/app_Taboquinhas-DF.png" width="300" alt="App Input Data"> <img src="sup_images/Taboquinha_overlay.png" width="586" alt="Overlay output"> </p>
+
+🛰️ Example 2: Hélio Valgas Solar Plant
+<p align="center"> <img src="sup_images/app_Hélio_Valgas-MG.png" width="300" alt="App Input Data"> <img src="sup_images/Hélio_Valgas_overlay.png" width="586" alt="Overlay output"> </p>
+
 
 ## **Future Improvements**
 - **Optimize inference speed** using more powerful GPUs (limited in this project considering Budget constraints).
