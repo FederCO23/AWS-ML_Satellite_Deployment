@@ -75,9 +75,14 @@ The system is deployed using **AWS Step Functions**, connecting multiple AWS ser
 5. **Report Generation (AWS Batch Job):** Creates overlays and statistics.
 6. **Results Retrieval (S3 & Flask UI):** Users can download reports via the web app.
 
-## **Running the System - Section UNDER CONSTRUCTION**
+## **Running the System**
 
-Access the UI at **...** and enter coordinates for detection.
+The demo application is deployed on AWS, and because the resources used are paid, access is limited to manage operating costs. However, if you're interested in trying the tool, feel free to reach out - I'll be happy to share the access link.
+
+📧 Email: federico.bessi@gmail.com  
+🔗 GitHub: [github.com/FederCO23](https://github.com/FederCO23)  
+💼 LinkedIn: [Federico Bessi](https://www.linkedin.com/in/federicobessi/)
+
 
 ## **AWS Deployment**
 For cloud deployment, ensure the following:
