@@ -89,10 +89,10 @@ This project includes a semantic segmentation model that analyzes Sentinel-2 sat
 The left images show the input variables. The right images displays the model’s prediction in a overlay image highlighting the detection in cyan color.
 
 🛰️ Example 1: Taboquinha DF Solar Plant
-<p align="center"> <img src="sup_images/app_Taboquinhas-DF.png" width="300" alt="App Input Data"> <img src="sup_images/Taboquinha_overlay.png" width="586" alt="Overlay output"> </p>
+<p align="center"> <img src="sup_images/app_Taboquinhas-DF.png" width="250" alt="App Input Data"> <img src="sup_images/Taboquinha_overlay.png" width="490" alt="Overlay output"> </p>
 
 🛰️ Example 2: Hélio Valgas Solar Plant
-<p align="center"> <img src="sup_images/app_Hélio_Valgas-MG.png" width="300" alt="App Input Data"> <img src="sup_images/Hélio_Valgas_overlay.png" width="586" alt="Overlay output"> </p>
+<p align="center"> <img src="sup_images/app_Hélio_Valgas-MG.png" width="250" alt="App Input Data"> <img src="sup_images/Hélio_Valgas_overlay.png" width="490" alt="Overlay output"> </p>
 
 
 ## **Future Improvements**
