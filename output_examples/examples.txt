@@ -1,0 +1,37 @@
+Examples:
+
+	Solar Plant Name:		Taboquinha (DF)
+	Type:					Single Small/Medium Plant, isolated
+	Lat:					-15.885858
+	Log:					-47.725772
+	Nort-South Distance:	15 km
+	West-East Distance: 	15 km
+
+	Solar Plant Name:		Euler Paranhos (DF)
+	Type:					Multiple Small Plants, mixed suroundings
+	Lat:					-15.753978
+	Log:					-47.735458
+	Nort-South Distance:	15 km
+	West-East Distance: 	15 km
+
+	Solar Plant Name:		Hélio Valgas - Norte (MG)
+	Type:					Single Big Plant, isolated
+	Lat:					-17.526175
+	Log:					-44.627183
+	Nort-South Distance:	20 km
+	West-East Distance: 	20 km
+
+	Solar Plant Name:		Complexo Solar Piraporá (MG)
+	Type:					Single Big Plant, isolated
+	Lat:					-17.408611
+	Log:					-44.926722
+	Nort-South Distance:	20 km
+	West-East Distance: 	20 km
+	
+	Solar Plant Name:		Nova Olinda (PI)
+	Type:					Double Big Plant, isolated
+	Lat:					-8.209413
+	Log:					-42.560798
+	Nort-South Distance:	20 km
+	West-East Distance: 	20 km
+		
