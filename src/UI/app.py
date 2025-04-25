@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify, send_file
+from flask import Flask, request, render_template, jsonify, send_file, make_response
 import boto3
 import json
 import logging
@@ -28,12 +28,31 @@ logger.addHandler(logging.StreamHandler())  # Send logs to CloudWatch
 s3_client = boto3.client("s3", region_name=AWS_REGION)
 
 
-@app.route("/", methods=["GET"])
+@app.route("/", methods=["GET", "OPTIONS"])
 def home():
-    return render_template("index.html")
+    if request.method == "OPTIONS":
+        # Handle CORS preflight request
+        response = make_response()
+        return _corsify_response(response)
+
+    # Skip token validation on root route
+    #if not validate_token(request):
+    #    return _corsify_response(jsonify({"error": "Unauthorized"}), 401)
+
+    # Render the main frontend page (index.html)
+    html = render_template("index.html")
+    response = make_response(html)
+    return _corsify_response(response)
+
 
 @app.route("/start", methods=["POST"])
 def start_workflow():
+
+    # Require x-api-key for usage plan quota enforcement
+    api_key = request.headers.get("x-api-key")
+    if not api_key:
+        return jsonify({"error": "Missing API key"}), 401
+
     try:
         data = request.get_json()
         if not data:
@@ -81,6 +100,10 @@ def start_workflow():
 
 @app.route("/status", methods=["GET"])
 def check_status():
+    # No token check anymore - it's public
+    #if not validate_token(request):
+    #    return jsonify({"error": "Unauthorized"}), 401
+
     try:
         execution_arn = request.args.get("executionArn")
 
@@ -132,6 +155,10 @@ def check_status():
 
 @app.route("/get-report", methods=["GET"])
 def get_report():
+    # No token check anymore - it's public
+    #if not validate_token(request):
+    #    return jsonify({"error": "Unauthorized"}), 401
+
     transaction_id = request.args.get("transaction_id")
     if not transaction_id:
         logger.error("Transaction ID is missing in the request")
@@ -163,6 +190,11 @@ def get_report():
 
 @app.route("/download-results", methods=["GET"])
 def download_results():
+    
+    # No token check anymore - it's public
+    #if not validate_token(request):
+    #    return jsonify({"error": "Unauthorized"}), 401
+
     transaction_id = request.args.get("transaction_id")
     if not transaction_id:
         return jsonify({"error": "Missing transaction_id"}), 400
@@ -204,13 +236,20 @@ def download_results():
     return jsonify({"download_url": presigned_url})
 
 
+def validate_token(req):
+    expected_token = "jfF5VCC0KzcY91hbPXhi6ZpQ2VbIHT06jzLIWk8c"
+    provided_token = req.headers.get("X-Access-Token") or req.args.get("token")
+    return expected_token == provided_token
 
-def _corsify_response(response):
+
+def _corsify_response(response, status_code=200):
     """Adds CORS headers to the response."""
+    response.status_code = status_code
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Access-Token"
     return response
+
 
 if __name__ == "__main__":
     app.run(debug=True)

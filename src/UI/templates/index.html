@@ -3,7 +3,17 @@
 <head>
     <title>Solar Plant Detection through Satellite Imagery (Sentinel-2)</title>
 <script>
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const accessToken = urlParams.get('token');
+
     async function startWorkflow() {
+
+	if (!accessToken) {
+	  alert("Access token is missing. Please use the correct entry point.");
+	  toggleStartButton(true);
+	  return;
+	}
 
         toggleStartButton(false)
         document.getElementById("log-container").innerHTML = "";
@@ -55,7 +65,10 @@
 
         let response = await fetch("https://j4zkohkobg.execute-api.us-east-1.amazonaws.com/dev/start", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "x-api-key": accessToken
+            },
             body: JSON.stringify({ 
                 center_point: [lat, lon],
                 ns_distance_km: ns, 
@@ -63,19 +76,51 @@
             })
         });
 
-        let data = await response.json();
-        logStatus("Starting analysis...");
-        
-        if (data.executionArn) {
-            logStatus(`Workflow started! Tracking execution: ${data.executionArn}`);
-            checkStatus(data.executionArn);
-        } else {
-            logStatus(`Error: ${data.error}`);
+//        let data = await response.json();
+//        logStatus("Starting analysis...");
+//        
+//        if (data.executionArn) {
+//            logStatus(`Workflow started! Tracking execution: ${data.executionArn}`);
+//            checkStatus(data.executionArn);
+//        } else {
+//            logStatus(`Error: ${data.error}`);
+//
+//            // If there's an error right away, hide the spinner again:
+//            document.getElementById("spinner").style.display = "none";
+//            toggleStartButton(true)
+//        }
 
-            // If there's an error right away, hide the spinner again:
-            document.getElementById("spinner").style.display = "none";
-            toggleStartButton(true)
-        }
+		if (!response.ok) {
+		    if (response.status === 403 || response.status === 429) {
+		        logStatus("⚠️  API quota limit reached. Cannot start a new workflow with this token.");
+		    } else {
+		        logStatus(`Error starting workflow: API Error ${response.status} - ${response.statusText}`);
+		    }
+		    document.getElementById("spinner").style.display = "none";
+		    toggleStartButton(true);
+		    return;
+		}
+
+		let data;
+		try {
+		    data = await response.json();
+		} catch (e) {
+		    logStatus("Error: Invalid response format from the server.");
+		    document.getElementById("spinner").style.display = "none";
+		    toggleStartButton(true);
+		    return;
+		}
+
+		logStatus("Starting analysis...");
+
+		if (data.executionArn) {
+		    logStatus(`Workflow started! Tracking execution: ${data.executionArn}`);
+		    checkStatus(data.executionArn);
+		} else {
+		    logStatus(`Error: ${data.error || "Unknown error starting workflow."}`);
+		    document.getElementById("spinner").style.display = "none";
+		    toggleStartButton(true);
+		}
 
     }
 
@@ -87,12 +132,22 @@ async function checkStatus(executionArn) {
     try {
         let response = await fetch(`https://j4zkohkobg.execute-api.us-east-1.amazonaws.com/dev/status?executionArn=${executionArn}`, {
             method: "GET",
-            headers: { "Content-Type": "application/json" }
+            headers: { 
+                "Content-Type": "application/json",
+                "x-api-key": accessToken
+            }
         });
 
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-        }
+	if (!response.ok) {
+    		if (response.status === 403 || response.status === 429) {
+        		logStatus("⚠️  API quota limit reached for this token. Workflow cannot proceed.");
+    		} else {
+        		logStatus(`API Error: ${response.status} - ${response.statusText}`);
+    		}
+		document.getElementById("spinner").style.display = "none";
+		toggleStartButton(true);
+		return;
+	}
 
         let data = await response.json();
 
@@ -203,7 +258,10 @@ async function downloadResults(transaction_id) {
     try {
         let response = await fetch(`https://j4zkohkobg.execute-api.us-east-1.amazonaws.com/dev/download-results?transaction_id=${transaction_id}`, {
             method: "GET",
-            headers: { "Content-Type": "application/json" }
+            headers: { 
+                "Content-Type": "application/json",
+                "x-api-key": accessToken
+            }
         });
 
         let data = await response.json();
@@ -360,7 +418,7 @@ function toggleStartButton(enabled) {
 
         <!-- Spinner (initially hidden) -->
 <div id="spinner" style="display:none; margin: 10px 0;">
-  <img src="{{ url_for('static', filename='spinner.gif') }}" alt="Loading..." style="width:30px; height:30px;" />
+  <img src="https://satellite-ml-solarp-detection-data.s3.us-east-1.amazonaws.com/static/spinner.gif" alt="Loading..." style="width:30px; height:30px;" />
 </div>
 
 
