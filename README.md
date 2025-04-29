@@ -93,7 +93,7 @@ The demo application is hosted on AWS. Since it uses paid cloud resources, acces
 >
 >📧 Email: federico.bessi@gmail.com
 >
->💼 LinkedIn: [Federico Bessi](https://www.linkedin.com/in/federicobessi/)
+>💼 LinkedIn: [Federico Bessi](https://www.linkedin.com/in/federico-bessi/)
 
 
 ## 🌍 **Sample Results from Satellite-Based Detection**
