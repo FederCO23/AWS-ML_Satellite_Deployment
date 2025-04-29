@@ -75,12 +75,23 @@ The system is deployed using **AWS Step Functions**, connecting multiple AWS ser
 5. **Report Generation (AWS Batch Job):** Creates overlays and statistics.
 6. **Results Retrieval (S3 & Flask UI):** Users can download reports via the web app.
 
+
 ## **Running the System**
 
-The demo application is deployed on AWS, and because the resources used are paid, access is limited to manage operating costs. However, if you're interested in trying the tool, feel free to reach out - I'll be happy to share the access link.
+The demo application is hosted on AWS. Since it uses paid cloud resources, access is limited to help manage operating costs. However, if you're interested in trying the tool, feel free to request access. I’ll be happy to share an access token.
 
-📧 Email: federico.bessi@gmail.com  
-🔗 GitHub: [github.com/FederCO23](https://github.com/FederCO23)  
+👉 [Request Access to the Demo](https://satellite-solar-scan-ai.netlify.app/demo.html)
+
+🔑 How It Works
+
+    Visit the link and fill out a short form with your details.
+
+    You’ll receive an access token and a secure link via email shortly after.
+
+Feel free to connect with me by e-mail or on LinkedIn if you have any questions or feedback!
+
+📧 Email: federico.bessi@gmail.com
+
 💼 LinkedIn: [Federico Bessi](https://www.linkedin.com/in/federicobessi/)
 
 ## 🌍 **Sample Results from Satellite-Based Detection**
