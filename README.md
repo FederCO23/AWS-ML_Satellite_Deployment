@@ -84,15 +84,16 @@ The demo application is hosted on AWS. Since it uses paid cloud resources, acces
 
 🔑 How It Works
 
-    Visit the link and fill out a short form with your details.
+1- Visit the link and fill out a short form with your details.
 
-    You’ll receive an access token and a secure link via email shortly after.
+2- You’ll receive an access token and a secure link via email shortly after.
 
 Feel free to connect with me by e-mail or on LinkedIn if you have any questions or feedback!
 
 📧 Email: federico.bessi@gmail.com
 
 💼 LinkedIn: [Federico Bessi](https://www.linkedin.com/in/federicobessi/)
+
 
 ## 🌍 **Sample Results from Satellite-Based Detection**
 This project includes a semantic segmentation model that analyzes Sentinel-2 satellite images to detect photovoltaic solar plants. Below are sample outputs showing the effectiveness of the model.
