@@ -96,7 +96,13 @@ The left images show the input variables. The right images displays the model’
 
 
 ## **Future Improvements**
-- **Optimize inference speed** using more powerful GPUs (limited in this project considering Budget constraints).
-- **Postprocessing** use connected component filtering to remove very small predictions. Filtering noise with area-based rules.
-- **Improve the web UI** for better user experience.
-- **Add time filtering** for time-line analysis.
+- **Optimize inference speed** 
+	- **Cache intermediate results:** Store BDC downloads and post-processed images in S3 to avoid redundant downloads and processing.
+ 	- **Evaluate GPU upgrade:** Test faster types (e.g., g5.xlarge, p3.2xlarge) to accelerate inference, considering budget constraints.
+ 
+- **Post-processing improvements:** Use connected component filtering to remove very small predictions, filtering noise with area-based rules.
+- **UI improvements:** Improve the web interface for a smoother user experience, including better feedback during long processing times.
+- **Add time filtering:** Add the ability to filter satellite images by acquisition date for more refined temporal analysis.
+- **Adopt S2 Cell tiling:** Replace the current custom algorithm with an S2 Cells-based approach for better geographic indexing and scalability.
+
+ 
