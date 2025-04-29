@@ -50,6 +50,7 @@ AWS-ML_Satellite_Deployment/
 │   │
 │   ├── UI/
 │   │   ├── app.py  # Flask backend server
+│   │   ├── zappa_settings.json  # settings for the deployment tool
 │   │   ├── templates/index.html  # JavaScript / HTML frontend for UI
 │   │
 │   └── utils/
