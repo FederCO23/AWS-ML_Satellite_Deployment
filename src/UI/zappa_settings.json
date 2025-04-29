@@ -1,0 +1,19 @@
+{
+    "dev": {
+        "app_function": "app.app",
+        "aws_region": "us-east-1",
+        "profile_name": "default",
+        "project_name": "aws-ui",
+        "runtime": "python3.11",
+        "s3_bucket": "zappa-7asqbhph0",
+        "cors": true,
+	"allowed_origin": "https://satellite-solar-scan-ai.netlify.app",
+        "timeout_seconds": 30,
+        "api_gateway_enabled": true,  
+        "memory_size": 512,  
+        "exclude": [],  
+        "manage_roles": false,  
+        "role_name": "aws-ui-dev-role",
+        "role_arn": "arn:aws:iam::864981724706:role/aws-ui-dev-role"  
+    }
+}
