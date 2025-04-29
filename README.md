@@ -85,15 +85,14 @@ The demo application is hosted on AWS. Since it uses paid cloud resources, acces
 
 🔑 How It Works
 
-1- Visit the link and fill out a short form with your details.
-
-2- You’ll receive an access token and a secure link via email shortly after.
-
-Feel free to connect with me by e-mail or on LinkedIn if you have any questions or feedback!
-
-📧 Email: federico.bessi@gmail.com
-
-💼 LinkedIn: [Federico Bessi](https://www.linkedin.com/in/federicobessi/)
+>1. Visit the link and fill out a short form with your details.
+>2. You’ll receive an access token and a secure link via email shortly after.
+>
+>Feel free to connect with me by e-mail or on LinkedIn if you have any questions or feedback!
+>
+>📧 Email: federico.bessi@gmail.com
+>
+>💼 LinkedIn: [Federico Bessi](https://www.linkedin.com/in/federicobessi/)
 
 
 ## 🌍 **Sample Results from Satellite-Based Detection**
