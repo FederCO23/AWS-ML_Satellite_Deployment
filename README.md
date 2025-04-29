@@ -81,7 +81,7 @@ The system is deployed using **AWS Step Functions**, connecting multiple AWS ser
 
 The demo application is hosted on AWS. Since it uses paid cloud resources, access is limited to help manage operating costs. However, if you're interested in trying the tool, feel free to request access. I’ll be happy to share an access token.
 
-👉 [Request Access to the Demo] (https://satellite-solar-scan-ai.netlify.app/)
+👉 [Request Access to the Demo](https://satellite-solar-scan-ai.netlify.app/)
 
 
 🔑 How It Works
